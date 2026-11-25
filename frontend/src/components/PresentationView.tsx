@@ -500,7 +500,7 @@ export default function PresentationView({ run, group, onExit, onJump }: Props) 
           <header className="deck-head">
             <div className="deck-eyebrow">
               <span>{slide.section} · Slide {slide.num} of {SLIDES.length}</span>
-              <span>OpenNeuro ds005777 · Research Seminar (~2 slides/min)</span>
+              <span>OpenNeuro ds005777 · Peng et al., 2018</span>
             </div>
             <h1>{slide.title}</h1>
             <p className="deck-lead">{slide.subtitle}</p>
