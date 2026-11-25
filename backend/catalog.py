@@ -260,12 +260,24 @@ def save_catalog(catalog: dict[str, Any], path: Path | None = None) -> Path:
     return path
 
 
-def load_catalog(refresh: bool = False) -> dict[str, Any]:
+def load_catalog(refresh: bool = False, allow_empty: bool = False) -> dict[str, Any]:
     """Load cached `catalog.json`, or rediscover raw BIDS files when missing or `refresh=True`."""
     path = PROCESSED_DIR / "catalog.json"
     if path.exists() and not refresh:
         return json.loads(path.read_text(encoding="utf-8"))
-    catalog = discover()
+    try:
+        catalog = discover()
+    except FileNotFoundError:
+        if allow_empty:
+            return {
+                "dataset": "ds005777",
+                "name": "Electrical_Morphine_Placebo_2018",
+                "sampling_frequency": 25.0,
+                "subjects": {},
+                "runs": {},
+                "rois": [],
+            }
+        raise
     save_catalog(catalog, path)
     return catalog
 

@@ -125,7 +125,7 @@ class FnirsAgent:
 
     def __init__(self):
         """Load dataset catalog, session manager, and OpenAI-compatible client."""
-        self.catalog = load_catalog()
+        self.catalog = load_catalog(allow_empty=True)
         self.sessions = SessionManager(self.catalog)
         self.client = OpenAI(
             base_url=LLM_BASE_URL,

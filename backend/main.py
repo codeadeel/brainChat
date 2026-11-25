@@ -38,15 +38,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-CATALOG = load_catalog()
+CATALOG = load_catalog(allow_empty=True)
 AGENT = FnirsAgent()
+
+
+def _refresh_if_needed() -> None:
+    """Reload catalog once processed data appears after container startup."""
+    global CATALOG
+    if CATALOG["runs"]:
+        return
+    loaded = load_catalog(allow_empty=True)
+    if loaded["runs"]:
+        CATALOG = loaded
+        AGENT.catalog = loaded
+        AGENT.sessions.catalog = loaded
 
 
 @app.get("/api/health")
 def health() -> dict[str, Any]:
     """Return runtime health status, dataset counts, and configured LLM metadata."""
+    _refresh_if_needed()
     return {
-        "status": "ok",
+        "status": "ok" if CATALOG["runs"] else "needs_data",
         "dataset": "ds005777",
         "n_subjects": len(CATALOG["subjects"]),
         "n_runs": len(CATALOG["runs"]),
@@ -59,6 +72,7 @@ def health() -> dict[str, Any]:
 @app.get("/api/catalog")
 def catalog() -> dict[str, Any]:
     """Return subject, visit, session, run, ROI, and group summary metadata."""
+    _refresh_if_needed()
     sessions = {}
     for sub in CATALOG["subjects"].values():
         for ses in sub["sessions"].values():
