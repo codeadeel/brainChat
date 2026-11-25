@@ -30,19 +30,25 @@ CAVEATS = [
 
 
 class ToolContext:
+    """Session and catalog context passed to deterministic tool implementations."""
+
     def __init__(self, session: Any, catalog: dict[str, Any]):
+        """Bind a `ChatSession` and dataset catalog for tool execution."""
         self.session = session
         self.catalog = catalog
 
     @property
     def run_meta(self) -> dict[str, Any]:
+        """Return catalog metadata for the active session's `run_id`."""
         return self.catalog["runs"][self.session.run_id]
 
     def run_meta_for(self, run_id: str | None) -> dict[str, Any]:
+        """Return catalog metadata for `run_id`, defaulting to the active replay run."""
         return self.catalog["runs"][run_id or self.session.run_id]
 
 
 def _roi_channels(meta: dict[str, Any], roi: str | None) -> list[str]:
+    """List channel names belonging to `roi` (or all channels if `roi is None`)."""
     return [
         c["name"]
         for c in meta["channels"]
@@ -51,6 +57,7 @@ def _roi_channels(meta: dict[str, Any], roi: str | None) -> list[str]:
 
 
 def _compact_analysis(res: dict[str, Any]) -> dict[str, Any]:
+    """Strip full time-series arrays from an event result before returning to the LLM."""
     keys = (
         "status",
         "run_id",
@@ -72,6 +79,7 @@ def _compact_analysis(res: dict[str, Any]) -> dict[str, Any]:
 
 
 def _compact_comparison(res: dict[str, Any]) -> dict[str, Any]:
+    """Keep scalar statistics and paired metadata from a comparison result for LLM consumption."""
     keys = (
         "status",
         "scope",
@@ -121,6 +129,7 @@ def _evidence(
     params: dict[str, Any] | None = None,
     data: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    """Register an evidence card (`[E#]`) with standard pipeline caveats in the session store."""
     return ctx.session.store.add(
         kind=kind,
         title=title,
@@ -140,6 +149,7 @@ def find_runs(
     condition: str | None = None,
     timepoint: str | None = None,
 ) -> dict[str, Any]:
+    """Query catalog runs filtered by subject, condition, and/or dosing timepoint."""
     rows = []
     for rid, r in ctx.catalog["runs"].items():
         if subject and r["subject"] != subject:
@@ -163,6 +173,7 @@ def find_runs(
 
 
 def get_current_state(ctx: ToolContext) -> dict[str, Any]:
+    """Evaluate ΔHbO/ΔHbR, recent slope, QC, and stimulus context at the active playhead."""
     s = ctx.session
     meta = ctx.run_meta_for(s.run_id)
     res = analysis.get_current_state(s.run_id, s.playhead, s.roi, s.selected_channels)
@@ -214,6 +225,7 @@ def get_current_state(ctx: ToolContext) -> dict[str, Any]:
 
 
 def get_recent_events(ctx: ToolContext, window_s: float = 60.0) -> dict[str, Any]:
+    """Return noxious and innocuous events occurring within `±window_s` of the playhead."""
     res = analysis.get_recent_events(ctx.session.run_id, ctx.session.playhead, window_s)
     res["status"] = "ok"
     res["summary"] = (
@@ -230,6 +242,7 @@ def analyze_event(
     channels: list[str] | None = None,
     run_id: str | None = None,
 ) -> dict[str, Any]:
+    """Compute trial-averaged HRF metrics, render a figure, and register an evidence card."""
     rid = run_id or ctx.session.run_id
     res = analysis.analyze_event(rid, event_type, roi, channels)
     if res.get("status") != "ok":
@@ -280,6 +293,7 @@ def get_quality(
     channels: list[str] | None = None,
     run_id: str | None = None,
 ) -> dict[str, Any]:
+    """Inspect per-channel SCI, CV, and motion flags, and generate a QC bar chart."""
     rid = run_id or ctx.session.run_id
     q = analysis.get_quality(rid, roi, channels)
     q["status"] = "ok"
@@ -318,6 +332,7 @@ def assess_artifact(
     channels: list[str] | None = None,
     run_id: str | None = None,
 ) -> dict[str, Any]:
+    """Diagnose motion jumps, low cardiac coupling, or systemic scalp contamination in a window."""
     rid = run_id or ctx.session.run_id
     win = tuple(window) if window else None
     res = analysis.assess_artifact(rid, roi, win, channels)
@@ -357,6 +372,7 @@ def compare_within_visit(
     event_type: str = "VAS7",
     roi: str = "medial_ba10",
 ) -> dict[str, Any]:
+    """Compare the active participant's post-drug run against their pre-drug baseline."""
     s = ctx.session
     meta = ctx.run_meta
     res = analysis.compare_within_visit(meta["subject"], meta["condition"], timepoint, event_type, roi)
@@ -400,6 +416,7 @@ def compare_timepoints_group(
     event_type: str = "VAS7",
     roi: str = "medial_ba10",
 ) -> dict[str, Any]:
+    """Run a group paired test comparing `timepoint` vs. `pre` within `condition`."""
     res = analysis.compare_timepoints_group(condition, timepoint, event_type, roi)
     if res.get("status") != "ok":
         return res
@@ -445,6 +462,7 @@ def compare_conditions(
     roi: str = "medial_ba10",
     subject: str | None = None,
 ) -> dict[str, Any]:
+    """Compare morphine vs. placebo responses at `timepoint` (group-paired or single-subject)."""
     res = analysis.compare_conditions(timepoint, event_type, roi, subject)
     if res.get("status") != "ok":
         return res
@@ -511,6 +529,7 @@ def compare_conditions(
 
 
 def get_evidence(ctx: ToolContext, evidence_id: str) -> dict[str, Any]:
+    """Retrieve full statistics, method, and caveats for an existing session evidence ID."""
     meta = ctx.session.store.get(evidence_id)
     if not meta:
         return {"status": "not_found", "evidence_id": evidence_id, "available": [m["id"] for m in ctx.session.store.all()]}
@@ -524,6 +543,7 @@ def set_view(
     end: float | None = None,
     tab: str | None = None,
 ) -> dict[str, Any]:
+    """Emit a UI action instructing the frontend to focus specific channels, time bounds, or tab."""
     return {
         "status": "ok",
         "ui_action": {"type": "set_view", "channels": channels, "start": start, "end": end, "tab": tab},
@@ -706,6 +726,7 @@ TOOL_FUNCS = {
 
 
 def execute_tool(name: str, args: dict[str, Any], ctx: ToolContext) -> dict[str, Any]:
+    """Dispatch a validated tool call by name and catch argument or runtime errors safely."""
     fn = TOOL_FUNCS.get(name)
     if fn is None:
         return {"status": "error", "error": f"Unknown tool: {name}", "available": sorted(TOOL_FUNCS)}

@@ -17,6 +17,7 @@ from backend.config import GROUP_DIR
 
 
 def _metric(hbo: np.ndarray, fs: float, onsets: list[float]) -> float | None:
+    """Compute mean baseline-corrected ΔHbO in the 7–10 s window across `onsets`."""
     pre = int(round(5 * fs))
     post = int(round(25 * fs))
     t = np.arange(-pre, post) / fs
@@ -34,6 +35,7 @@ def _metric(hbo: np.ndarray, fs: float, onsets: list[float]) -> float | None:
 
 
 def main() -> None:
+    """Run the shuffled-onset permutation test across pre-drug scans and save JSON results."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--n-perm", type=int, default=500)
     parser.add_argument("--seed", type=int, default=20261123)

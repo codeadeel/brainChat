@@ -12,6 +12,7 @@ from .preprocess import build_all
 
 
 def cmd_catalog(_args) -> None:
+    """Discover raw BIDS runs and write `catalog.json`."""
     cat = discover()
     save_catalog(cat)
     print(f"{len(cat['subjects'])} subjects, {len(cat['runs'])} runs")
@@ -20,6 +21,7 @@ def cmd_catalog(_args) -> None:
 
 
 def cmd_build(args) -> None:
+    """Preprocess runs into `.npz` caches and optionally rebuild the group summary."""
     cat = load_catalog(refresh=args.refresh_catalog)
     print(f"catalog: {len(cat['subjects'])} subjects, {len(cat['runs'])} runs")
     results = build_all(
@@ -44,11 +46,13 @@ def cmd_build(args) -> None:
 
 
 def cmd_group(_args) -> None:
+    """Recompute and save the group crossover summary JSON."""
     summary = analysis.compute_group_summary()
     print(json.dumps({k: summary[k] for k in ("generated_at", "n_subjects", "rois", "timepoints")}, indent=1))
 
 
 def cmd_verify(args) -> None:
+    """Run a quick sanity check on one cached run and print event metrics."""
     cat = load_catalog()
     rid = args.run_id or sorted(cat["runs"])[0]
     data = analysis.load_run(rid)
@@ -59,6 +63,7 @@ def cmd_verify(args) -> None:
 
 
 def cmd_serve(args) -> None:
+    """Launch the FastAPI application via Uvicorn."""
     import uvicorn
 
     uvicorn.run(
@@ -71,6 +76,7 @@ def cmd_serve(args) -> None:
 
 
 def main() -> None:
+    """Parse CLI arguments and dispatch the requested subcommand."""
     parser = argparse.ArgumentParser(prog="python -m backend.cli")
     sub = parser.add_subparsers(dest="cmd", required=True)
 

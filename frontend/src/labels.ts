@@ -1,3 +1,4 @@
+/** Shared display labels for fNIRS anatomical regions of interest (ROIs). */
 export const ROI_DISPLAY: Record<string, string> = {
   medial_ba10: "Medial BA10",
   left_pfc: "Left PFC",
@@ -6,6 +7,7 @@ export const ROI_DISPLAY: Record<string, string> = {
   other: "Other",
 };
 
+/** Format an internal ROI key into a human-readable anatomical label. */
 export function roiLabel(roi: string): string {
   return ROI_DISPLAY[roi] ?? roi.replace(/_/g, " ");
 }

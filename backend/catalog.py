@@ -32,11 +32,13 @@ SES_RE = re.compile(r"ses-([^/]+)$")
 
 
 def _read_tsv(path: Path) -> list[dict[str, str]]:
+    """Read a tab-delimited BIDS file into a list of row dictionaries."""
     with path.open(newline="", encoding="utf-8") as fh:
         return list(csv.DictReader(fh, delimiter="\t"))
 
 
 def _num(value: str | None, default: float = 0.0) -> float:
+    """Safely convert a string field to float, returning `default` on failure."""
     try:
         return float(value)  # type: ignore[arg-type]
     except (TypeError, ValueError):
@@ -54,6 +56,7 @@ def normalize_event_type(raw: str) -> str:
 
 
 def parse_events(path: Path) -> list[dict[str, Any]]:
+    """Parse an `*_events.tsv` file, normalizing VAS labels and flagging practice trials."""
     rows = _read_tsv(path)
     events: list[dict[str, Any]] = []
     for i, row in enumerate(rows):
@@ -74,6 +77,7 @@ def parse_events(path: Path) -> list[dict[str, Any]]:
 
 
 def _optodes(path: Path) -> dict[str, dict[str, float]]:
+    """Load 2D/3D optode coordinates keyed by source/detector name."""
     out: dict[str, dict[str, float]] = {}
     if not path.exists():
         return out
@@ -88,6 +92,7 @@ def _optodes(path: Path) -> dict[str, dict[str, float]]:
 
 
 def assign_roi(x_mid: float, y_mid: float, short: bool) -> str:
+    """Map an optode midpoint and separation flag to an anatomical ROI label."""
     if short:
         return "short"
     if x_mid <= -55 and y_mid >= 20:
@@ -149,6 +154,7 @@ def parse_channels(channels_path: Path, optodes_path: Path) -> list[dict[str, An
 
 
 def timepoint_for_run(run: str) -> str:
+    """Map chronological BIDS run labels (`run-01`..`run-04`) to nominal dosing timepoints."""
     return {
         "run-01": "pre",
         "run-02": "30min",
@@ -158,6 +164,7 @@ def timepoint_for_run(run: str) -> str:
 
 
 def discover(raw_dir: Path = RAW_DIR) -> dict[str, Any]:
+    """Scan the raw BIDS ds005777 tree and construct the complete subject/run catalog."""
     participants_path = raw_dir / "participants.tsv"
     if not participants_path.exists():
         raise FileNotFoundError(f"Dataset metadata not found at {participants_path}")
@@ -247,12 +254,14 @@ def discover(raw_dir: Path = RAW_DIR) -> dict[str, Any]:
 
 
 def save_catalog(catalog: dict[str, Any], path: Path | None = None) -> Path:
+    """Serialize `catalog` to JSON under `PROCESSED_DIR/catalog.json` or `path`."""
     path = path or (PROCESSED_DIR / "catalog.json")
     path.write_text(json.dumps(catalog, indent=1), encoding="utf-8")
     return path
 
 
 def load_catalog(refresh: bool = False) -> dict[str, Any]:
+    """Load cached `catalog.json`, or rediscover raw BIDS files when missing or `refresh=True`."""
     path = PROCESSED_DIR / "catalog.json"
     if path.exists() and not refresh:
         return json.loads(path.read_text(encoding="utf-8"))

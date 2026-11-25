@@ -31,6 +31,7 @@ KEEP_ROOT = ("participants.tsv", "participants.json", "dataset_description.json"
 
 
 def list_keys() -> list[tuple[str, int]]:
+    """List all S3 object keys and byte sizes under the OpenNeuro `ds005777` prefix."""
     ns = {"s3": "http://s3.amazonaws.com/doc/2006-03-01/"}
     url = f"{S3}?list-type=2&prefix={PREFIX}&max-keys=1000"
     with urllib.request.urlopen(url, timeout=60) as response:
@@ -45,6 +46,7 @@ def list_keys() -> list[tuple[str, int]]:
 
 
 def wanted(key: str, subjects: set[str] | None) -> bool:
+    """Return True if `key` is a required fNIRS/BIDS file matching the subject filter."""
     tail = key.rsplit("/", 1)[-1]
     if tail in KEEP_ROOT:
         return True
@@ -56,6 +58,7 @@ def wanted(key: str, subjects: set[str] | None) -> bool:
 
 
 def download(key: str, dest: Path) -> tuple[str, int, str | None]:
+    """Download one S3 object atomically to `dest / key`, skipping non-empty existing files."""
     target = dest / key
     if target.exists() and target.stat().st_size > 0:
         return key, target.stat().st_size, None
@@ -72,6 +75,7 @@ def download(key: str, dest: Path) -> tuple[str, int, str | None]:
 
 
 def main() -> None:
+    """Parse CLI options and download OpenNeuro ds005777 files in parallel."""
     default_dest = str(Path(os.getenv("DATA_DIR", "../data")) / "raw")
     parser = argparse.ArgumentParser()
     parser.add_argument("--dest", default=default_dest, help="destination directory (contains ds005777/)")

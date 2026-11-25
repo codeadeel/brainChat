@@ -146,6 +146,7 @@ function robustRange(mean: (number | null)[], sem: (number | null)[]) {
   return [-absMax, absMax];
 }
 
+/** Continuous HbO/HbR ROI-mean Plotly chart with stimulus shading, zoom/follow, and click-to-seek. */
 export default function SignalChart({
   run,
   selected,

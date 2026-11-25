@@ -1,9 +1,11 @@
+"""Unit tests for BIDS event label normalization and practice-trial parsing."""
 from pathlib import Path
 
 from backend.catalog import normalize_event_type, parse_events
 
 
 def test_event_label_variants():
+    """Ensure spacing/case variants of ElectricalVAS7 and ElectricalVAS3 normalize cleanly."""
     assert normalize_event_type("ElectricalVAS7") == "VAS7"
     assert normalize_event_type("Electrical VAS 7") == "VAS7"
     assert normalize_event_type("Electrical VAS 3") == "VAS3"
@@ -11,6 +13,7 @@ def test_event_label_variants():
 
 
 def test_practice_marker_and_ordering(tmp_path: Path):
+    """Ensure negative `value` rows are flagged as practice trials and sorted by onset."""
     path = tmp_path / "events.tsv"
     path.write_text(
         "onset\tduration\ttrial_type\tvalue\n"

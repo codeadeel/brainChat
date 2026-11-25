@@ -133,6 +133,7 @@ function PlotPane({
   return <div className="chart" style={{ height }} ref={ref} />;
 }
 
+/** Interactive 7-stage signal processing explorer displaying live equations, waveforms, and Welch PSDs. */
 export default function PipelineView({
   runId,
   initialChannel,

@@ -44,6 +44,7 @@ AGENT = FnirsAgent()
 
 @app.get("/api/health")
 def health() -> dict[str, Any]:
+    """Return runtime health status, dataset counts, and configured LLM metadata."""
     return {
         "status": "ok",
         "dataset": "ds005777",
@@ -57,6 +58,7 @@ def health() -> dict[str, Any]:
 
 @app.get("/api/catalog")
 def catalog() -> dict[str, Any]:
+    """Return subject, visit, session, run, ROI, and group summary metadata."""
     sessions = {}
     for sub in CATALOG["subjects"].values():
         for ses in sub["sessions"].values():
@@ -112,6 +114,7 @@ def run_data(
     start: float | None = Query(default=None),
     end: float | None = Query(default=None),
 ) -> Any:
+    """Serve display-centered HbO/HbR traces, optode metadata, and event timing for `run_id`."""
     if run_id not in CATALOG["runs"]:
         raise HTTPException(status_code=404, detail=f"Unknown run {run_id}")
     data = analysis.load_run(run_id)
@@ -163,6 +166,7 @@ def run_data(
     tt = np.asarray(t[i0:i1], dtype=float)
 
     def clean(arr: np.ndarray) -> list[float | None]:
+        """Round finite samples to 4 decimals and replace non-finite entries with `None`."""
         return [None if not math.isfinite(float(v)) else round(float(v), 4) for v in arr]
 
     payload = {
@@ -214,6 +218,7 @@ def pipeline_stages(
     run_id: str,
     channel: str | None = Query(default=None),
 ) -> Any:
+    """Return intermediate waveforms, PSDs, and parameters across all 7 preprocessing stages."""
     if run_id not in CATALOG["runs"]:
         raise HTTPException(status_code=404, detail=f"Unknown run {run_id}")
     return ORJSONResponse(pipeline_viz.get_pipeline_stages(run_id, channel))
@@ -221,6 +226,7 @@ def pipeline_stages(
 
 @app.get("/api/group")
 def group() -> Any:
+    """Return the precomputed group crossover statistical summary."""
     summary = analysis.load_group_summary()
     if summary is None:
         raise HTTPException(status_code=404, detail="Group summary has not been built yet.")
@@ -229,6 +235,7 @@ def group() -> Any:
 
 @app.get("/api/evidence/{session_id}/{evidence_id}")
 def evidence_meta(session_id: str, evidence_id: str) -> Any:
+    """Return stored JSON metadata for a session evidence card (`[E#]`)."""
     path = ARTIFACTS_DIR / session_id / f"{evidence_id}.json"
     if not path.exists():
         raise HTTPException(status_code=404, detail="Evidence not found")
@@ -237,6 +244,7 @@ def evidence_meta(session_id: str, evidence_id: str) -> Any:
 
 @app.get("/api/evidence/{session_id}/{evidence_id}/figure")
 def evidence_figure(session_id: str, evidence_id: str) -> FileResponse:
+    """Serve the rendered PNG figure associated with an evidence card."""
     path = ARTIFACTS_DIR / session_id / f"{evidence_id}.png"
     if not path.exists():
         raise HTTPException(status_code=404, detail="Figure not found")
@@ -244,6 +252,8 @@ def evidence_figure(session_id: str, evidence_id: str) -> FileResponse:
 
 
 class ChatRequest(BaseModel):
+    """Request payload for grounded `/api/chat` SSE queries."""
+
     session_id: str | None = None
     run_id: str
     playhead: float = Field(default=0.0, ge=0.0)
@@ -254,6 +264,7 @@ class ChatRequest(BaseModel):
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
+    """Stream grounded LLM tool calls, evidence cards, and answers via SSE."""
     if req.run_id not in CATALOG["runs"]:
         raise HTTPException(status_code=404, detail=f"Unknown run {req.run_id}")
     session = AGENT.sessions.get(
@@ -278,6 +289,7 @@ if FRONTEND_DIST.exists():
 
     @app.get("/{full_path:path}")
     def spa(full_path: str):
+        """Serve built static files or fall back to `index.html` for SPA routing."""
         candidate = FRONTEND_DIST / full_path
         if full_path and candidate.is_file():
             return FileResponse(candidate)

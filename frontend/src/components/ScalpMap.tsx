@@ -103,6 +103,7 @@ interface Props {
   onToggle: (name: string) => void;
 }
 
+/** Top-down 2D probe map arranging all 33 channels into non-overlapping anatomical mini-grids. */
 export default function ScalpMap({ channels, selected, values, onToggle }: Props) {
   const [view, setView] = useState({ s: 1, x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);

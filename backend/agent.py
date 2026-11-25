@@ -27,11 +27,14 @@ from .tools import TOOL_SCHEMAS, ToolContext, execute_tool
 
 
 def sse(event: str, data: Any) -> str:
+    """Format an event name and JSON payload as a Server-Sent Events frame."""
     return f"event: {event}\ndata: {json.dumps(data, default=str)}\n\n"
 
 
 @dataclass
 class ChatSession:
+    """Per-session replay state, conversation history, and evidence store."""
+
     id: str
     run_id: str
     playhead: float
@@ -44,16 +47,21 @@ class ChatSession:
 
     @property
     def subject(self) -> str:
+        """Return the active BIDS subject identifier from `run_id`."""
         return self.run_id.split("_")[0]
 
     @property
     def session(self) -> str:
+        """Return the active BIDS session identifier from `run_id`."""
         parts = self.run_id.split("_")
         return parts[1] if len(parts) > 1 else "ses-1"
 
 
 class SessionManager:
+    """In-memory registry for active chat sessions."""
+
     def __init__(self, catalog: dict[str, Any]):
+        """Initialize the manager with the dataset catalog."""
         self.catalog = catalog
         self.sessions: dict[str, ChatSession] = {}
 
@@ -65,6 +73,7 @@ class SessionManager:
         roi: str = "medial_ba10",
         channels: list[str] | None = None,
     ) -> ChatSession:
+        """Retrieve or create a session and synchronize it to the live UI context."""
         sid = session_id or uuid.uuid4().hex
         session = self.sessions.get(sid)
         if session is None:
@@ -87,6 +96,7 @@ class SessionManager:
         return session
 
     def prune(self, max_sessions: int = 50) -> None:
+        """Evict oldest sessions when active sessions exceed `max_sessions`."""
         if len(self.sessions) <= max_sessions:
             return
         for sid, _ in sorted(self.sessions.items(), key=lambda kv: kv[1].updated_at)[: len(self.sessions) - max_sessions]:
@@ -94,6 +104,7 @@ class SessionManager:
 
 
 def _trim(messages: list[dict[str, Any]], limit: int = 26) -> list[dict[str, Any]]:
+    """Trim conversation history while preserving a user-turn boundary."""
     if len(messages) <= limit:
         return messages
     cut = max(0, len(messages) - limit)
@@ -110,7 +121,10 @@ def _for_model(result: dict[str, Any]) -> dict[str, Any]:
 
 
 class FnirsAgent:
+    """Orchestrates tool-grounded LLM chat rounds and citation verification."""
+
     def __init__(self):
+        """Load dataset catalog, session manager, and OpenAI-compatible client."""
         self.catalog = load_catalog()
         self.sessions = SessionManager(self.catalog)
         self.client = OpenAI(
@@ -121,6 +135,7 @@ class FnirsAgent:
         )
 
     def _completion(self, messages: list[dict[str, Any]]):
+        """Send one chat-completion request with a single transient retry."""
         last_exc: Exception | None = None
         for attempt in range(2):
             try:
@@ -141,6 +156,7 @@ class FnirsAgent:
     async def chat(
         self, session: ChatSession, message: str
     ) -> AsyncGenerator[str, None]:
+        """Run the tool-calling loop for a user query and stream SSE frames."""
         ctx = ToolContext(session, self.catalog)
         session.messages.append({"role": "user", "content": message})
         session.messages = _trim(session.messages)

@@ -30,6 +30,7 @@ RNG = np.random.default_rng(20261123)
 
 
 def _finite(x: Any) -> Any:
+    """Recursively sanitize NumPy/float structures so NaN/Inf become `None`."""
     if isinstance(x, (np.floating, float)):
         v = float(x)
         return None if not math.isfinite(v) else v
@@ -46,6 +47,7 @@ def _finite(x: Any) -> Any:
 
 @lru_cache(maxsize=48)
 def load_run(run_id: str) -> dict[str, Any]:
+    """Load and cache the preprocessed `.npz` arrays and metadata for `run_id`."""
     path = PROCESSED_DIR / f"{run_id}.npz"
     if not path.exists():
         raise FileNotFoundError(f"Processed run not found: {run_id}")
@@ -56,6 +58,7 @@ def load_run(run_id: str) -> dict[str, Any]:
 
 
 def run_summary(run_id: str) -> dict[str, Any]:
+    """Return compact run metadata, channel QC rows, and event timing for `run_id`."""
     data = load_run(run_id)
     meta = data["meta"]
     return {
@@ -89,6 +92,7 @@ def select_channels(
     channels: list[str] | None = None,
     good_only: bool = True,
 ) -> list[int]:
+    """Resolve channel indices by explicit names or ROI, preferring QC-passing channels."""
     names = [c["name"] for c in meta["channels"]]
     if channels:
         idx = [names.index(n) for n in channels if n in names]
@@ -105,6 +109,7 @@ def select_channels(
 
 
 def _run_for(catalog: dict[str, Any], subject: str, condition: str, timepoint: str) -> str | None:
+    """Look up the `run_id` matching `(subject, condition, timepoint)` in `catalog`."""
     sessions = catalog["subjects"][subject]["sessions"]
     ses = next((s for s in sessions.values() if s["condition"] == condition), None)
     if not ses:
@@ -121,6 +126,7 @@ def _epochs(
     event_type: str,
     exclude_motion: bool = True,
 ) -> tuple[np.ndarray | None, list[dict[str, Any]], list[dict[str, Any]]]:
+    """Extract baseline-corrected `(-5..+25 s)` trial epochs and exclusion reasons."""
     meta = data["meta"]
     hbo = data["hbo"]
     fs = float(meta["fs"])
@@ -165,6 +171,7 @@ def analyze_event(
     exclude_motion: bool = True,
     good_only: bool = True,
 ) -> dict[str, Any]:
+    """Compute trial-averaged ΔHbO HRF, 7–10 s mean, 5–15 s nadir, and one-sample t-test."""
     data = load_run(run_id)
     meta = data["meta"]
     idx = select_channels(meta, data, roi=roi, channels=channels, good_only=good_only)
@@ -258,6 +265,7 @@ def get_current_state(
     channels: list[str] | None = None,
     window_s: float = 10.0,
 ) -> dict[str, Any]:
+    """Summarize ΔHbO/ΔHbR, slope, stimulus timing, and QC up to `playhead` seconds."""
     data = load_run(run_id)
     meta = data["meta"]
     idx = select_channels(meta, data, roi=roi, channels=channels, good_only=True)
@@ -327,6 +335,7 @@ def get_current_state(
 
 
 def get_recent_events(run_id: str, playhead: float, window_s: float = 60.0) -> dict[str, Any]:
+    """Return stimulus events within `±window_s` seconds of `playhead`."""
     data = load_run(run_id)
     meta = data["meta"]
     evs = []
@@ -350,6 +359,7 @@ def get_recent_events(run_id: str, playhead: float, window_s: float = 60.0) -> d
 
 
 def _welch(a: np.ndarray, b: np.ndarray) -> dict[str, Any]:
+    """Run Welch's unequal-variance two-sample t-test between trial sets `a` and `b`."""
     a = np.asarray(a, dtype=float)
     b = np.asarray(b, dtype=float)
     if len(a) < 2 or len(b) < 2:
@@ -359,6 +369,7 @@ def _welch(a: np.ndarray, b: np.ndarray) -> dict[str, Any]:
 
 
 def _paired(a: np.ndarray, b: np.ndarray) -> dict[str, Any]:
+    """Run a paired t-test and compute Cohen's `dz` effect size across paired subjects."""
     a = np.asarray(a, dtype=float)
     b = np.asarray(b, dtype=float)
     mask = np.isfinite(a) & np.isfinite(b)
@@ -378,6 +389,7 @@ def _paired(a: np.ndarray, b: np.ndarray) -> dict[str, Any]:
 
 
 def bootstrap_ci(values: np.ndarray, n_boot: int = N_BOOT) -> list[float] | None:
+    """Compute a 95% percentile bootstrap confidence interval for the mean of `values`."""
     values = np.asarray(values, dtype=float)
     values = values[np.isfinite(values)]
     if len(values) < 2:
@@ -394,6 +406,7 @@ def compare_within_visit(
     event_type: str = "VAS7",
     roi: str = "medial_ba10",
 ) -> dict[str, Any]:
+    """Compare a single participant's post-drug scan against their same-visit pre-drug scan."""
     catalog = load_catalog()
     pre_id = _run_for(catalog, subject, condition, "pre")
     post_id = _run_for(catalog, subject, condition, timepoint)
@@ -430,6 +443,7 @@ def compare_within_visit(
 
 
 def _subject_condition_runs(catalog: dict[str, Any], timepoint: str):
+    """Return `(subject, morphine_run_id, placebo_run_id)` tuples available at `timepoint`."""
     rows = []
     for subject in sorted(catalog["subjects"]):
         mor = _run_for(catalog, subject, "morphine", timepoint)
@@ -445,6 +459,7 @@ def compare_conditions(
     roi: str = "medial_ba10",
     subject: str | None = None,
 ) -> dict[str, Any]:
+    """Compare morphine vs. placebo responses for one subject or paired across the group."""
     catalog = load_catalog()
     if subject:
         mor_id = _run_for(catalog, subject, "morphine", timepoint)
@@ -615,6 +630,7 @@ def compare_timepoints_group(
 
 
 def get_quality(run_id: str, roi: str | None = "medial_ba10", channels: list[str] | None = None) -> dict[str, Any]:
+    """Return per-channel SCI, CV, motion fraction, and QC pass/fail flags for `run_id`."""
     data = load_run(run_id)
     meta = data["meta"]
     idx = select_channels(meta, data, roi=roi, channels=channels, good_only=False)
@@ -655,6 +671,7 @@ def assess_artifact(
     window: tuple[float, float] | None = None,
     channels: list[str] | None = None,
 ) -> dict[str, Any]:
+    """Evaluate motion spikes, low cardiac coupling, and short-channel correlation in a window."""
     data = load_run(run_id)
     meta = data["meta"]
     idx = select_channels(meta, data, roi=roi, channels=channels, good_only=False)
@@ -707,6 +724,7 @@ def assess_artifact(
 
 
 def compute_group_summary() -> dict[str, Any]:
+    """Compute and persist within-visit and between-condition statistics with BH-FDR."""
     catalog = load_catalog()
     rois = [r for r in ROI_ORDER if r not in ("short", "other")]
     records = []
@@ -897,6 +915,7 @@ def compute_group_summary() -> dict[str, Any]:
 
 
 def load_group_summary() -> dict[str, Any] | None:
+    """Load the precomputed `group_summary.json` file if present."""
     path = GROUP_DIR / "group_summary.json"
     if not path.exists():
         return None

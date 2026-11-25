@@ -1,3 +1,4 @@
+/** Typed REST and SSE client helpers for the FastAPI backend. */
 import type {
   Catalog,
   EvidenceMeta,
@@ -24,16 +25,21 @@ async function json<T>(url: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+/** Fetch dataset catalog metadata (subjects, visits, runs, and ROI labels). */
 export const getCatalog = () => json<Catalog>(`${API}/catalog`);
 
+/** Fetch preprocessed time-series traces and channel metadata for a run. */
 export const getRun = (runId: string, all = true) =>
   json<RunData>(`${API}/run/${encodeURIComponent(runId)}?all=${all ? "true" : "false"}`);
 
+/** Fetch the precomputed 14-subject crossover statistical summary. */
 export const getGroup = () => json<GroupSummary>(`${API}/group`);
 
+/** Fetch intermediate signal arrays, PSDs, and fitted parameters across all 7 pipeline stages. */
 export const getPipeline = (runId: string, channel?: string) =>
   json<PipelineData>(`${API}/pipeline/${encodeURIComponent(runId)}${channel ? `?channel=${encodeURIComponent(channel)}` : ""}`);
 
+/** Fetch persisted metadata for a single session evidence card (`[E#]`). */
 export const getEvidence = (sessionId: string, evidenceId: string) =>
   json<EvidenceMeta>(
     `${API}/evidence/${encodeURIComponent(sessionId)}/${encodeURIComponent(evidenceId)}`,

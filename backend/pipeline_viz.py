@@ -19,6 +19,7 @@ from .preprocess import (
 
 
 def _clean_arr(arr: np.ndarray, decimals: int = 4) -> list[float | None]:
+    """Round an array to `decimals` while replacing NaN/Inf values with `None`."""
     out: list[float | None] = []
     for v in arr:
         fv = float(v)
@@ -27,6 +28,7 @@ def _clean_arr(arr: np.ndarray, decimals: int = 4) -> list[float | None]:
 
 
 def _psd(x: np.ndarray, fs: float, max_hz: float = 3.0) -> tuple[list[float], list[float | None]]:
+    """Compute Welch log10 power spectral density truncated to `max_hz`."""
     freqs, pxx = welch(x, fs=fs, nperseg=min(1024, len(x)))
     mask = freqs <= max_hz
     return (
@@ -36,6 +38,7 @@ def _psd(x: np.ndarray, fs: float, max_hz: float = 3.0) -> tuple[list[float], li
 
 
 def _motion_intervals(mask: np.ndarray, fs: float) -> list[list[float]]:
+    """Convert a boolean sample-level motion mask into `[start_s, end_s]` intervals."""
     if not mask.any():
         return []
     padded = np.concatenate([[0], mask.astype(np.int8), [0]])
@@ -48,6 +51,7 @@ def _motion_intervals(mask: np.ndarray, fs: float) -> list[list[float]]:
 def _epoch_stats(
     hbo: np.ndarray, fs: float, events: list[dict[str, Any]], event_type: str
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
+    """Extract baseline-corrected single-channel trial mean and SEM for `event_type`."""
     pre = int(round(BASELINE_S * fs))
     post = int(round(EPOCH_POST_S * fs))
     len_ep = pre + post
@@ -73,6 +77,7 @@ def _epoch_stats(
 
 @lru_cache(maxsize=8)
 def _compute_run_stages(run_id: str) -> dict[str, Any]:
+    """Compute and cache all 7 intermediate signal arrays from raw SNIRF for `run_id`."""
     import mne
 
     catalog = load_catalog()
@@ -147,6 +152,7 @@ def _compute_run_stages(run_id: str) -> dict[str, Any]:
 
 
 def get_pipeline_stages(run_id: str, channel: str | None = None) -> dict[str, Any]:
+    """Return downsampled waveforms, PSDs, parameters, and HRFs for one channel across all 7 stages."""
     d = _compute_run_stages(run_id)
     run = d["run"]
     channels = run["channels"]

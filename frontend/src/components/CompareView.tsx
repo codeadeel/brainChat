@@ -53,6 +53,7 @@ function pval(v: number | null | undefined) {
   return v < 0.001 ? "<0.001" : v.toFixed(3);
 }
 
+/** Group-level morphine vs. placebo crossover dashboard with time-course and paired participant plots. */
 export default function CompareView({
   group,
   onAsk,

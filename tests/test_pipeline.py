@@ -1,3 +1,4 @@
+"""Synthetic recovery and null-control unit tests for the analysis engine."""
 import json
 
 import numpy as np
@@ -7,6 +8,7 @@ from backend import analysis
 
 
 def _synthetic(tmp_path, with_response: bool):
+    """Generate a synthetic `.npz` run with optional simulated VAS7 deactivation HRFs."""
     fs = 25.0
     duration = 300.0
     n = int(duration * fs)
@@ -97,6 +99,7 @@ def _synthetic(tmp_path, with_response: bool):
 
 
 def test_synthetic_hrf_is_recovered(tmp_path, monkeypatch):
+    """Verify event analysis accurately recovers a synthetic negative HbO response."""
     monkeypatch.setattr(analysis, "PROCESSED_DIR", tmp_path)
     analysis.load_run.cache_clear()
     _synthetic(tmp_path, with_response=True)
@@ -110,6 +113,7 @@ def test_synthetic_hrf_is_recovered(tmp_path, monkeypatch):
 
 
 def test_null_run_does_not_invent_a_response(tmp_path, monkeypatch):
+    """Verify pure-noise runs return near-zero mean responses and non-significant p-values."""
     monkeypatch.setattr(analysis, "PROCESSED_DIR", tmp_path)
     analysis.load_run.cache_clear()
     _synthetic(tmp_path, with_response=False)

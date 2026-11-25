@@ -227,6 +227,7 @@ function FullPlot({
   return <div className="chart" style={{ height }} ref={ref} />;
 }
 
+/** Full-screen 18-slide interactive academic presentation deck with live dashboard modules and animations. */
 export default function PresentationView({ run, group, onExit, onJump }: Props) {
   const [idx, setIdx] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);

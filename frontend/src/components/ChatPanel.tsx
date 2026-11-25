@@ -94,6 +94,7 @@ function FormattedAnswer({ text, onOpen }: { text: string; onOpen: (id: string) 
   return <>{blocks}</>;
 }
 
+/** Grounded Brain Analyst chat sidebar with markdown formatting, tool trace, and clickable `[E#]` citations. */
 export default function ChatPanel({
   messages,
   streaming,

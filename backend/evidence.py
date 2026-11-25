@@ -18,7 +18,10 @@ from .config import ARTIFACTS_DIR
 
 
 class EvidenceStore:
+    """Disk-backed registry of generated evidence cards and figures for a session."""
+
     def __init__(self, session_id: str):
+        """Initialize the store directory and reload any prior evidence metadata."""
         safe = re.sub(r"[^a-zA-Z0-9_-]", "", session_id)[:48] or "session"
         self.session_id = safe
         self.dir = ARTIFACTS_DIR / safe
@@ -32,6 +35,7 @@ class EvidenceStore:
                 continue
 
     def _next_id(self) -> str:
+        """Allocate the next sequential evidence identifier (`E1`, `E2`, ...)."""
         n = 1
         while f"E{n}" in self.items:
             n += 1
@@ -49,6 +53,7 @@ class EvidenceStore:
         params: dict[str, Any] | None = None,
         data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        """Persist an evidence record and move its optional PNG figure into session storage."""
         eid = self._next_id()
         figure_name = None
         if figure_path is not None and Path(figure_path).exists():
@@ -73,12 +78,15 @@ class EvidenceStore:
         return meta
 
     def get(self, eid: str) -> dict[str, Any] | None:
+        """Return the evidence record for `eid`, or `None` if absent."""
         return self.items.get(eid)
 
     def all(self) -> list[dict[str, Any]]:
+        """Return all evidence records ordered numerically by ID."""
         return sorted(self.items.values(), key=lambda m: int(m["id"][1:]))
 
 
 def temp_figure_path() -> Path:
+    """Return a unique temporary PNG path under the artifacts directory."""
     ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
     return ARTIFACTS_DIR / f"tmp_{uuid.uuid4().hex}.png"

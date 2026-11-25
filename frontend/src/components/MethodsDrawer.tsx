@@ -91,6 +91,7 @@ const SECTIONS = [
   },
 ];
 
+/** Slide-over Portal & Study Guide summarizing pipeline rules, QC thresholds, validation, and references. */
 export default function MethodsDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

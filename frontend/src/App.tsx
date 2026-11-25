@@ -112,6 +112,7 @@ function Sparkline({ values, color }: { values: number[]; color: string }) {
   );
 }
 
+/** Main dashboard state coordinator linking replay, 3D/2D probes, pipeline, compare, deck, and analyst chat. */
 export default function App() {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [subject, setSubject] = useState("sub-002");

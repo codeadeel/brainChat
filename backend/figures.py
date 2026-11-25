@@ -39,6 +39,7 @@ plt.rcParams.update(
 
 
 def _style(ax):
+    """Apply shared clinical grid, spine removal, and zero-baseline styling to `ax`."""
     ax.grid(True, alpha=0.35, linewidth=0.6)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -46,6 +47,7 @@ def _style(ax):
 
 
 def hrf_plot(result: dict[str, Any], out_path: Path, title: str | None = None) -> Path:
+    """Render a stimulus-locked ΔHbO HRF mean ± SEM plot with stimulus and metric windows."""
     t = np.asarray(result["time"])
     hrf = np.asarray(result["hrf"])
     sem = np.asarray(result.get("sem") or np.zeros_like(hrf))
@@ -99,6 +101,7 @@ def two_hrf_plot(
     a_sem: np.ndarray | None = None,
     b_sem: np.ndarray | None = None,
 ) -> Path:
+    """Render a paired two-curve HRF comparison plot (e.g. post vs pre or morphine vs placebo)."""
     fig, ax = plt.subplots(figsize=(8.4, 3.7), dpi=150)
     _style(ax)
     ax.axvspan(0, 5, color=PAIN, alpha=0.12)
@@ -128,6 +131,7 @@ def paired_bar_plot(
     a_color: str = MORPHINE,
     b_color: str = PLACEBO,
 ) -> Path:
+    """Render a subject-paired scatter plot connecting condition A and B responses."""
     pairs = [
         (r["subject"], r["morphine"], r["placebo"])
         for r in rows
@@ -167,6 +171,7 @@ def comparison_plot(
     a_color: str = MORPHINE,
     b_color: str = PLACEBO,
 ) -> Path:
+    """Render a side-by-side HRF average and paired subject dot-plot comparison."""
     fig, (ax1, ax2) = plt.subplots(
         1, 2, figsize=(11.2, 3.9), dpi=150, gridspec_kw={"width_ratios": [1.55, 1]}
     )
@@ -212,6 +217,7 @@ def signal_plot(
     title: str,
     playhead: float | None = None,
 ) -> Path:
+    """Render a continuous HbO/HbR time-window figure with stimulus shading and playhead."""
     meta = data["meta"]
     t = np.asarray(data["time_ds"])
     fs_ds = meta["display_fs"]
@@ -243,6 +249,7 @@ def signal_plot(
 
 
 def qc_plot(quality: dict[str, Any], out_path: Path, title: str) -> Path:
+    """Render a per-channel Scalp Coupling Index (SCI) bar chart against the 0.70 threshold."""
     rows = quality["channels"]
     names = [r["name"] for r in rows]
     sci = [r["sci"] if r["sci"] is not None else 0 for r in rows]

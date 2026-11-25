@@ -34,11 +34,13 @@ from .config import (
 
 
 def _bandpass(x: np.ndarray, fs: float, low: float = 0.01, high: float = 0.2) -> np.ndarray:
+    """Apply a 4th-order zero-phase Butterworth band-pass filter along the last axis."""
     sos = butter(4, [low, high], btype="bandpass", fs=fs, output="sos")
     return sosfiltfilt(sos, x, axis=-1)
 
 
 def _dilate(mask: np.ndarray, radius: int) -> np.ndarray:
+    """Dilate a 1D boolean mask symmetrically by `radius` samples."""
     if radius <= 0 or not mask.any():
         return mask
     kernel = np.ones(radius * 2 + 1, dtype=np.int16)
@@ -46,6 +48,7 @@ def _dilate(mask: np.ndarray, radius: int) -> np.ndarray:
 
 
 def _nearest_short(channels: list[dict[str, Any]]) -> dict[int, int]:
+    """Map each long-channel index to its Euclidean-nearest short-separation channel index."""
     shorts = [i for i, c in enumerate(channels) if c.get("short")]
     out: dict[int, int] = {}
     for i, c in enumerate(channels):
@@ -89,6 +92,7 @@ def _short_channel_regression(
 
 
 def _json_safe(x: Any) -> Any:
+    """Recursively convert NumPy scalars/arrays and non-finite floats into JSON-safe Python values."""
     if isinstance(x, dict):
         return {k: _json_safe(v) for k, v in x.items()}
     if isinstance(x, (list, tuple)):
@@ -104,6 +108,7 @@ def _json_safe(x: Any) -> Any:
 
 
 def process_run(run: dict[str, Any], out_dir: Path | None = None, force: bool = False) -> dict[str, Any]:
+    """Run deterministic preprocessing and QC for one SNIRF scan and write its `.npz` cache."""
     import mne
 
     out_dir = out_dir or PROCESSED_DIR
@@ -286,6 +291,7 @@ def process_run(run: dict[str, Any], out_dir: Path | None = None, force: bool = 
 
 
 def _worker(args: tuple[dict[str, Any], str, bool]) -> dict[str, Any]:
+    """Process-pool wrapper around `process_run` isolating per-run failures."""
     run, out_dir, force = args
     try:
         return process_run(run, Path(out_dir), force=force)
@@ -299,6 +305,7 @@ def build_all(
     force: bool = False,
     workers: int | None = None,
 ) -> list[dict[str, Any]]:
+    """Preprocess all matching catalog runs in parallel and emit `build_report.json`."""
     catalog = load_catalog()
     selected = list(catalog["runs"].values())
     if subjects:

@@ -88,6 +88,7 @@ function computeHrf(run: RunData, indices: number[], eventType: "VAS7" | "VAS3")
   return { t, mean, sem, trials, onsets, n };
 }
 
+/** Stimulus-locked trial-averaged HRF (`-5` to `+25 s`) chart with per-channel and per-trial overlays. */
 export default function EpochChart({ run, selected, showTrials, showChannels }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const indices = useMemo(

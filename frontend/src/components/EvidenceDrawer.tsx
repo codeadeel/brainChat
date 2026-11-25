@@ -37,6 +37,7 @@ function flatten(obj: unknown, prefix = ""): [string, string][] {
   return out;
 }
 
+/** Slide-over Evidence Drawer displaying generated figures, exact stats, preprocessing method, and caveats. */
 export default function EvidenceDrawer({
   evidence,
   onClose,

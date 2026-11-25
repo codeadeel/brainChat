@@ -377,6 +377,7 @@ function BrainScene({
   );
 }
 
+/** Interactive 3D textured head and cortical brain viewer with ray-cast optode markers (`Face` / `Brain`). */
 export default function BrainModel3D({
   channels,
   selected,

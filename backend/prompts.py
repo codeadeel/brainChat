@@ -7,6 +7,7 @@ from .config import ROI_LABELS
 
 
 def build_system_prompt(session: Any, catalog: dict[str, Any], evidence_ids: list[str]) -> str:
+    """Build the grounded system prompt reflecting the active replay state and evidence IDs."""
     run = catalog["runs"].get(session.run_id, {})
     n_channels = len(run.get("channels", []))
     n_subjects = len(catalog["subjects"])
