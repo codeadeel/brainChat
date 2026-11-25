@@ -1,35 +1,30 @@
-SNIRF recordings (ds005777)
+OpenNeuro ds005777 (SNIRF + BIDS)
         │
         ▼
-┌──────────────────────────────────────────────────────────────┐
-│ Deterministic fNIRS engine                                   │
-│                                                              │
-│  raw intensity                                               │
-│    → optical density                                        │
-│    → TDDR motion correction                                 │
-│    → modified Beer–Lambert (DPF = 6)                        │
-│    → nearest short-separation channel regression            │
-│    → 0.01–0.2 Hz band-pass                                  │
-│    → QC: SCI, CV, motion                                     │
-│    → cached HbO/HbR + events + channel metadata             │
-│                                                              │
-│  trial epoching → HRF metrics → paired/group statistics      │
-│  → figures + evidence cards (E1, E2, …)                     │
-└──────────────────────────────────────────────────────────────┘
-        │  typed JSON tools (11)
+┌────────────────────────────────────────────────────────────────┐
+│ Deterministic fNIRS Engine (backend/)                          │
+│                                                                │
+│  Raw Intensity → ΔOD + SCI → TDDR → MBLL (DPF=6)               │
+│  → 8 mm Short-Channel Regression → 0.01–0.20 Hz Band-Pass      │
+│  → QC Flags (SCI, CV, Motion) → Cached .npz + Group Summary    │
+│                                                                │
+│  Epoching (−5..+25 s) · Paired t-tests · Bootstrap CI · BH-FDR │
+│  → Headless Matplotlib Figures & Evidence Cards ([E1], [E2]…)  │
+└────────────────────────────────────────────────────────────────┘
+        │  11 Typed Tools (JSON summaries only)
         ▼
-┌──────────────────────────────────────────────────────────────┐
-│ Grounded LLM agent                                           │
-│  • context pack: dataset facts, methods, limits              │
-│  • tool loop (discovery, current state, event analysis,      │
-│    QC, artefact check, within/between comparisons, evidence) │
-│  • citations [E#], refusal rules, no numbers without a tool  │
-└──────────────────────────────────────────────────────────────┘
-        │  SSE events
+┌────────────────────────────────────────────────────────────────┐
+│ Grounded LLM Orchestrator (agent.py + prompts.py)              │
+│  • Receives replay context (run, playhead, ROI, channels)      │
+│  • Dispatches deterministic tools; verifies [E#] citations     │
+│  • Enforces refusal boundaries on clinical/unsupported queries │
+└────────────────────────────────────────────────────────────────┘
+        │  SSE Stream + REST API
         ▼
-┌──────────────────────────────────────────────────────────────┐
-│ React / Plotly interface                                     │
-│  continuous replay · event bands · channel picker · probe map│
-│  chat + tool trace + evidence drawer · group comparison tab  │
-└──────────────────────────────────────────────────────────────┘
-```
+┌────────────────────────────────────────────────────────────────┐
+│ React 19 + TypeScript Portal (frontend/)                       │
+│  • Monitor (continuous / Trial HRF, telemetry, channel picker) │
+│  • 3D Head/Brain Mesh (Three.js) & 2D Regional Mini-Grid       │
+│  • 7-Stage Pipeline Explorer · Group Compare · 18-Slide Deck   │
+│  • Brain Analyst Chat + Tool Trace + [E#] Evidence Drawer      │
+└────────────────────────────────────────────────────────────────┘
